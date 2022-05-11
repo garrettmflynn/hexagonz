@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="./styles.css">
+    <title>Hexagonz</title>
+</head>
+<body>
+    <nav>Hexagonz</nav>
+    <section id="main">
+        <canvas></canvas>
+    </section>
+    <footer>Garrett Flynn | 2022</footer>
+</body>
+<script type="module">
+
+    import * as shapes from './src/shapes/index.js'
+
+    // Set Canvas
+    const canvas = document.querySelector('canvas')
+    const context = canvas.getContext('2d');
+    const main = document.querySelector('#main')
+
+    const resizeCanvas = () => {
+        canvas.width = main.clientWidth;     // equals window dimension
+        canvas.height = main.clientHeight;
+    }
+
+    resizeCanvas()
+
+    window.addEventListener('resize', resizeCanvas)
+
+    const numBalls = 1
+    const numBoxes = 1
+
+    const playContext = {
+        balls: [],
+        boxes: [],
+        canvas,
+        context
+    }
+
+    for (let i = 0; i < numBalls; i++) playContext.balls.push(new shapes.Ball(playContext))
+    for (let i = 0; i < numBoxes; i++) playContext.boxes.push(new shapes.Box(playContext))
+
+    playContext.inactive = playContext.balls
+
+    // Start Drawing
+
+    const lastMouse = {x: NaN, y: NaN, ux: 1, uy: -1}
+
+    const animate = () => {
+        
+        context.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Aim Line
+        if (playContext.inactive.length === playContext.balls.length){
+            const firstX = playContext.inactive[0].position.x * canvas.width
+            const firstY = playContext.inactive[0].position.y * canvas.height
+
+            context.strokeStyle = 'white';
+            context.lineWidth = 2;
+
+            // draw a red line
+            context.beginPath();
+            context.moveTo(firstX, firstY);
+            context.lineTo(firstX + 50*(lastMouse.ux), firstY + 50*(lastMouse.uy));
+            context.stroke();
+        }
+
+        // Balls
+        playContext.balls.forEach((ball, i) => {
+            ball.move()
+            ball.draw()
+        })
+
+        // Boxes
+        playContext.boxes.forEach((box, i) => {
+            box.check()
+            box.draw()
+        })
+
+        window.requestAnimationFrame(animate)
+    }
+
+   window.requestAnimationFrame(animate)
+
+   const getUnitVec = (ev) => {
+       if (playContext.inactive[0]){
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = ev.clientX - rect.left;
+        const mouseY = ev.clientY - rect.top;
+        const diffX = mouseX - (playContext.inactive[0].position.x * playContext.canvas.width)
+        const diffY = mouseY - (playContext.inactive[0].position.y * playContext.canvas.height)
+        const mag = Math.sqrt(Math.pow(diffX,2) + Math.pow(diffY,2))
+        const uX = diffX / mag
+        const uY = diffY / mag
+        return {x: uX, y: uY}
+       } else return {}
+   }
+
+
+   // Update Mouse Position
+   window.onmousemove = (ev) => {
+        const unitVec = getUnitVec(ev)
+        lastMouse.ux = unitVec.x
+        lastMouse.uy = unitVec.y
+   }
+
+   var fired = {};
+
+   window.onkeydown = (ev) => {
+       if (!fired[ev.code]){
+            switch(ev.code){
+                case "Space": 
+                    playContext.balls.forEach(b => {
+                        b.velocity.x /= 10
+                        b.velocity.y /= 10
+                    });
+                    break;
+            }
+        }
+        fired[ev.code] = true
+   }
+
+   window.onkeyup = (ev) => {
+    fired[ev.code] = false
+    switch(ev.code){
+        case "Space": 
+            playContext.balls.forEach(b => {
+                b.velocity.x *= 10
+                b.velocity.y *= 10
+            });
+            break;
+    }
+   }
+
+   // Start Balls
+   window.onmousedown = (ev) => {
+    if (playContext.inactive.length === playContext.balls.length) {
+
+        // Set Velocity
+        const unit = getUnitVec(ev)
+        playContext.balls.forEach((ball) => ball.setVelocity(unit.x, unit.y))
+
+        // Start Inserting Balls
+        playContext.inactive = []
+        playContext.balls.forEach((ball, i) => {
+            setTimeout(() => window.requestAnimationFrame(() => {
+                ball.toggleActive()
+            }), 120*i)
+        })
+    }
+}
+
+
+</script>
+</html>
