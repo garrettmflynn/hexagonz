@@ -8,7 +8,7 @@
     <title>Hexagonz</title>
 </head>
 <body>
-    <nav>Hexagonz</nav>
+    <nav><div>Hexagonz</div><div><strong>Score: </strong><span id=score></span></div></nav>
     <section id="main">
         <canvas></canvas>
     </section>
@@ -22,6 +22,8 @@
     const canvas = document.querySelector('canvas')
     const context = canvas.getContext('2d');
     const main = document.querySelector('#main')
+    const score = document.querySelector('#score')
+    score.innerHTML = 0
 
     const resizeCanvas = () => {
         canvas.width = main.clientWidth;     // equals window dimension
@@ -32,8 +34,8 @@
 
     window.addEventListener('resize', resizeCanvas)
 
-    const numBalls = 1
-    const numBoxes = 1
+    const numBalls = 20
+    const numBoxes = 20
 
     const playContext = {
         balls: [],
@@ -43,7 +45,9 @@
     }
 
     for (let i = 0; i < numBalls; i++) playContext.balls.push(new shapes.Ball(playContext))
-    for (let i = 0; i < numBoxes; i++) playContext.boxes.push(new shapes.Box(playContext))
+    for (let i = 0; i < numBoxes; i++) {
+        playContext.boxes.push(new shapes.Box(playContext, (i*0.1)%1, 0.15*Math.floor(i/10)))
+    }
 
     playContext.inactive = playContext.balls
 
@@ -77,9 +81,13 @@
         })
 
         // Boxes
-        playContext.boxes.forEach((box, i) => {
-            box.check()
-            box.draw()
+        playContext.boxes.reverse().forEach((box, i) => {
+            const dead = box.check()
+            if (dead) {
+                score.innerHTML = new Number(score.innerHTML) + 1
+                playContext.boxes.splice(i, 1)
+            }
+            else box.draw()
         })
 
         window.requestAnimationFrame(animate)
@@ -88,7 +96,7 @@
    window.requestAnimationFrame(animate)
 
    const getUnitVec = (ev) => {
-       if (playContext.inactive[0]){
+       if (playContext.inactive.length === playContext.balls.length){
         const rect = canvas.getBoundingClientRect();
         const mouseX = ev.clientX - rect.left;
         const mouseY = ev.clientY - rect.top;
@@ -105,19 +113,26 @@
    // Update Mouse Position
    window.onmousemove = (ev) => {
         const unitVec = getUnitVec(ev)
-        lastMouse.ux = unitVec.x
-        lastMouse.uy = unitVec.y
+        if (unitVec.x) lastMouse.ux = unitVec.x
+        if (unitVec.y) lastMouse.uy = unitVec.y
    }
 
    var fired = {};
 
    window.onkeydown = (ev) => {
        if (!fired[ev.code]){
+           console.log(ev.code)
             switch(ev.code){
-                case "Space": 
+                case "KeyS": 
                     playContext.balls.forEach(b => {
                         b.velocity.x /= 10
                         b.velocity.y /= 10
+                    });
+                    break;
+                case "KeyF": 
+                    playContext.balls.forEach(b => {
+                        b.velocity.x *= 10
+                        b.velocity.y *= 10
                     });
                     break;
             }
@@ -128,10 +143,17 @@
    window.onkeyup = (ev) => {
     fired[ev.code] = false
     switch(ev.code){
-        case "Space": 
+        case "KeyS": 
             playContext.balls.forEach(b => {
                 b.velocity.x *= 10
                 b.velocity.y *= 10
+            });
+            break;
+
+        case "KeyF": 
+            playContext.balls.forEach(b => {
+                b.velocity.x /= 10
+                b.velocity.y /= 10
             });
             break;
     }

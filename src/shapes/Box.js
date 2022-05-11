@@ -1,12 +1,12 @@
 
 export class Box {
     
-    constructor (playContext){
+    constructor (playContext, x, y){
         this.playContext = playContext
         this.canvas = playContext.canvas
         this.context = playContext.context
         this.length = (playContext.boxLength ?? 0.10)
-        this.position = {x: 0.5 - this.length/4, y: 0.5 - this.length/4}
+        this.position = {x: x ?? 0, y: y ?? 0}
         this.lives = 5
         this.color = '#e41049'
     }
@@ -23,29 +23,32 @@ export class Box {
         let hit = false
         this.playContext.balls.forEach(ball => {
 
-            const widthRelativeRadius = (ball.radius/2) * ball.canvas.width / ball.canvas.height
-            if (ball.position.x + widthRelativeRadius > this.position.x && ball.position.x - widthRelativeRadius < this.position.x + this.length) {
-                if (ball.position.y + ball.radius > this.position.y && ball.position.y - ball.radius < this.position.y + this.length) {
+            const widthRelativeRadius = (ball.radius) * ball.canvas.width / ball.canvas.height
+            const widthRelativeLength= (this.length/4) * this.canvas.width / this.canvas.height
+
+            // Check Collision
+            var dx=(ball.position.x)-(this.position.x+widthRelativeLength);
+            var dy=(ball.position.y)-(this.position.y+this.length/2);
+            var width=(widthRelativeRadius+widthRelativeLength)/2;
+            var height=((ball.radius)+this.length)/2;
+            var crossWidth=width*dy;
+            var crossHeight=height*dx;
+
+            if(Math.abs(dx)<=width && Math.abs(dy)<=height){
                     hit = true
                     this.lives -= 1
-
-                    if (ball.velocity.x == ball.velocity.y) console.log('SAME!')
-                    const absX = Math.abs(ball.velocity.x)
-                    const absY = Math.abs(ball.velocity.y)
-                    const maxVel = Math.max(absX, absY)
-                    if (maxVel === absX) ball.velocity.x *= -1
-                    else ball.velocity.y *= -1
+                    if(crossWidth>crossHeight){
+                        if (crossWidth>(-crossHeight)) ball.velocity.y *= -1
+                        else ball.velocity.x *= -1
+                    } else{
+                        if (crossWidth>-(crossHeight)) ball.velocity.x *= -1
+                        else ball.velocity.y *= -1
+                    }
                 }
-            }
-            // else if (ball.position.y < (0 + this.radius)) this.velocity.y *= -1
-            // else if (ball.position.y > this.bottomBound) {
-            //     this.position.y = this.bottomBound
-            //     if (this.playContext.inactive[0]) this.position.x = this.playContext.inactive[0].position.x
-            //     this.toggleActive()
-            // }
         })
 
         this.color = (hit) ? '#10e485' : '#e41049'
+        return (this.lives <= 0)
     }
 
     draw = () => {
